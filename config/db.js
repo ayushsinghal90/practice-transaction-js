@@ -1,6 +1,6 @@
 const { Sequelize, DataTypes } = require("sequelize");
 
-const database = process.env.DB_DATABSE || "paratice_transaction";
+const database = process.env.DB_DATABSE || "practice_transaction";
 const username = process.env.DB_USERNAME || "root";
 const password = process.env.DB_PASSWORD || "root";
 
@@ -29,7 +29,7 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-db.User = require("../models/user")(sequelize, DataTypes);
-db.Account = require("../models/account")(sequelize, DataTypes);
+db.User = require("../models/user")(db.sequelize, DataTypes);
+db.Account = require("../models/account")(db.sequelize, DataTypes);
 
 module.exports = db;

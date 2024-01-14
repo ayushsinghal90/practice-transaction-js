@@ -1,9 +1,9 @@
-module.exports = function (sequelize, DataTypes) {
+module.exports = (sequelize, DataTypes) => {
   const Account = sequelize.define(
     "account",
     {
       userId: {
-        type: DataTypes.INTERGER,
+        type: DataTypes.INTEGER,
         allowNull: false,
       },
       balance: {
@@ -25,6 +25,10 @@ module.exports = function (sequelize, DataTypes) {
   Account.associate = (models) => {
     Account.belongsTo(models.User, { foreignKey: "userId" });
   };
+
+  if (Account === sequelize.models.Account) {
+    console.log("Account table connected");
+  }
 
   return Account;
 };

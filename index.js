@@ -8,12 +8,12 @@ const accountRouter = require("./routes/account");
 const transactionRouter = require("./routes/transaction");
 
 const app = express();
-const PORT = process.env.DB_DATABSE;
+const PORT = process.env.PORT;
 
 app.use(express.json({ extended: false }));
 app.use(logReqRes("log.txt"));
 
-app.get("/", healthRouter);
+app.use("/health", healthRouter);
 
 app.use("/api/user", userRouter);
 app.use("/api/account", accountRouter);

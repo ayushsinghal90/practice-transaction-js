@@ -1,23 +1,23 @@
-module.exports = function (sequelize, DataTypes) {
+module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "user",
     {
       firstName: {
-        type: STRING(50),
+        type: DataTypes.STRING(50),
         allowNull: false,
       },
       lastName: {
-        type: STRING(50),
+        type: DataTypes.STRING(50),
         allowNull: false,
       },
       username: {
-        type: STRING(50),
+        type: DataTypes.STRING(50),
         allowNull: false,
         unique: true,
       },
       email: {
-        type: STRING(50),
-        allowNull: true,
+        type: DataTypes.STRING(50),
+        allowNull: false,
       },
     },
     {
@@ -29,6 +29,10 @@ module.exports = function (sequelize, DataTypes) {
   User.assocate = (models) => {
     User.hasOne(models.Account);
   };
+
+  if (User === sequelize.models.User) {
+    console.log("User table connected");
+  }
 
   return User;
 };
