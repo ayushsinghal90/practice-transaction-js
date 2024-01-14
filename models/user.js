@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
 
   User.associate = (models) => {
     User.hasOne(models.Account);
+    User.hasMany(models.Transaction);
   };
 
   if (User === sequelize.models.User) {

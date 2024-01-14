@@ -1,59 +1,81 @@
 const db = require("../config/db");
+const TRANSACTION_STATUS = require("../utils/constants/transactionStatus");
+const InvalidRequest = require("../errors/invalidRequest");
+const ServerFailure = require("../errors/serverFailure");
+const e = require("express");
+
 const User = db.User;
 const Account = db.Account;
+const Transaction = db.Transaction;
 const sequelize = db.sequelize;
 
-async function makePayment(req, res) {
+async function completeTransaction(req, res) {
   const amount = req.body.amount;
-  const receiver = req.body.receiver;
-  const sender = req.body.sender;
+  const sender = await User.findOne({ where: { username: req.body.sender } });
+  const receiver = await User.findOne({
+    where: { username: req.body.receiver },
+  });
+
+  if (!sender || !receiver) {
+    return res.status(400).json({ message: "Payment details invalid." });
+  }
+
+  let transaction = createNewTransaction(sender, receiver, amount);
+  let status;
 
   try {
-    await sequelize.transaction(async (transaction) => {
-      const senderAccount = await findAccountByUsername(sender, transaction);
-      const receiverAccount = await findAccountByUsername(
-        receiver,
-        transaction
-      );
-
-      const details = validatePaymentDetails(
-        senderAccount,
-        receiverAccount,
-        amount
-      );
-
-      if (!details.valid) {
-        return res.status(400).json({ message: details.message });
-      }
-
-      await updateAccountBalance(senderAccount, -amount, transaction);
-      await updateAccountBalance(receiverAccount, amount, transaction);
-    });
-
-    return res.status(200).json({ message: "Transaction complete." });
+    await makePayment(sender, receiver, amount);
+    transaction.status = TRANSACTION_STATUS.processed;
+    status = 200;
   } catch (err) {
-    return res.status(500).json({
-      message: "Transaction failed. Please retry after some time.",
-      error: err.message,
-    });
+    transaction.failureMessage = err.message;
+    transaction.status = TRANSACTION_STATUS.failed;
+
+    if (err instanceof InvalidRequest || err instanceof ServerFailure) {
+      status = err.status;
+    }
   }
+
+  console.log(transaction);
+  transaction = await transaction.save();
+  return res.status(status).json(transaction);
+}
+
+async function makePayment(sender, receiver, amount) {
+  await sequelize.transaction(async (transaction) => {
+    const senderAccount = await findAccountByUser(sender, transaction);
+    const receiverAccount = await findAccountByUser(receiver, transaction);
+
+    validatePaymentDetails(senderAccount, receiverAccount, amount);
+
+    await updateAccountBalance(senderAccount, -amount, transaction);
+    await updateAccountBalance(receiverAccount, amount, transaction);
+  });
+}
+
+function createNewTransaction(sender, receiver, amount) {
+  return Transaction.build({
+    senderId: sender.id,
+    receiverId: receiver.id,
+    amount: amount,
+    status: TRANSACTION_STATUS.pending,
+  });
 }
 
 function validatePaymentDetails(senderAccount, recieverAccount, amount) {
   if (!senderAccount) {
-    return { valid: false, message: "Sender does not have a account." };
+    throw new InvalidRequest("Sender does not have a account.");
   } else if (!recieverAccount) {
-    return { valid: false, message: "Reciever does not have a account." };
+    throw new InvalidRequest("Reciever does not have a account.");
   } else if (senderAccount.balance - amount < 0) {
-    return { valid: false, message: "Sender balance is insufficient." };
+    throw new InvalidRequest("Sender balance is insufficient.");
   }
-  return { valid: true, message: null };
 }
 
-async function findAccountByUsername(username, transaction) {
+async function findAccountByUser(user, transaction) {
   return await Account.findOne(
     {
-      include: [{ model: User, where: { username: username }, attributes: [] }],
+      where: { userId: user.id },
     },
     { transaction }
   );
@@ -73,7 +95,7 @@ async function updateAccountBalance(account, amount, transaction) {
     }
   );
 
-  if (affectedRowsCount !== 1) {
+  if (result !== 1) {
     throw new Error(
       "Update failed. Account balance might have been modified by another transaction."
     );
@@ -85,5 +107,5 @@ async function updateAccountBalance(account, amount, transaction) {
 }
 
 module.exports = {
-  makePayment,
+  completeTransaction,
 };

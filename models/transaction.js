@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      recieverId: {
+      receiverId: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
@@ -17,13 +17,15 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       status: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING(50),
         values: [
-          TRANSACTION_STATUS.processed.ordinal,
-          TRANSACTION_STATUS.pending.ordinal,
-          TRANSACTION_STATUS.failed.ordinal,
-          TRANSACTION_STATUS.success.ordinal,
+          TRANSACTION_STATUS.processed,
+          TRANSACTION_STATUS.pending,
+          TRANSACTION_STATUS.failed,
         ],
+      },
+      failureMessage: {
+        type: DataTypes.STRING(50),
       },
     },
     {

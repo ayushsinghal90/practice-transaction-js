@@ -1,5 +1,4 @@
 const db = require("../config/db");
-const account = require("../models/account");
 const User = db.User;
 const Account = db.Account;
 

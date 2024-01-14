@@ -1,16 +1,7 @@
 const TRANSACTION_STATUS = {
-  processed: {
-    ordinal: 0,
-  },
-  pending: {
-    ordinal: 1,
-  },
-  success: {
-    ordinal: 2,
-  },
-  failed: {
-    ordinal: 2,
-  },
+  processed: "PROCESSSED",
+  pending: "PENDING",
+  failed: "FAILED",
 };
 
 module.exports = TRANSACTION_STATUS;
