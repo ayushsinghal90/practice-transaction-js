@@ -32,10 +32,9 @@ async function makePayment(req, res) {
 
     return res.status(200).json({ message: "Transaction complete." });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({
       message: "Transaction failed. Please retry after some time.",
-      error: err,
+      error: err.message,
     });
   }
 }
@@ -61,11 +60,27 @@ async function findAccountByUsername(username, transaction) {
 }
 
 async function updateAccountBalance(account, amount, transaction) {
-  const newBalance = parseFloat(account.balance) + parseFloat(amount);
-  await Account.update(
+  const accountId = account.id;
+  const currentBalance = parseFloat(account.balance);
+  const newBalance = currentBalance + parseFloat(amount);
+
+  const [affectedRowsCount, _] = await Account.update(
     { balance: newBalance },
-    { where: { id: account.id, balance: account.balance } },
-    { transaction }
+    {
+      where: { id: accountId, balance: currentBalance },
+      returning: true,
+      transaction,
+    }
+  );
+
+  if (affectedRowsCount !== 1) {
+    throw new Error(
+      "Update failed. Account balance might have been modified by another transaction."
+    );
+  }
+
+  console.log(
+    `Account balance updated successfully. Account ID: ${accountId}, New Balance: ${newBalance}`
   );
 }
 
