@@ -23,10 +23,20 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: "users",
       timestamps: true,
+      indexes: [
+        {
+          name: "username_idx",
+          fields: ["username"],
+        },
+        {
+          name: "email_idx",
+          fields: ["email"],
+        },
+      ],
     }
   );
 
-  User.assocate = (models) => {
+  User.associate = (models) => {
     User.hasOne(models.Account);
   };
 

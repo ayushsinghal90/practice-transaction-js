@@ -32,4 +32,7 @@ db.sequelize = sequelize;
 db.User = require("../models/user")(db.sequelize, DataTypes);
 db.Account = require("../models/account")(db.sequelize, DataTypes);
 
+db.User.associate(db);
+db.Account.associate(db);
+
 module.exports = db;
