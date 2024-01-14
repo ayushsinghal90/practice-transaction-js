@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const transaction = require("../controller/transaction");
 
-router.post("", transaction.completeTransaction);
+router.post("", transaction.startPayment);
 
 module.exports = router;

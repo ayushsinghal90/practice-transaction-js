@@ -9,36 +9,44 @@ const Account = db.Account;
 const Transaction = db.Transaction;
 const sequelize = db.sequelize;
 
-async function completeTransaction(req, res) {
-  const amount = req.body.amount;
-  const sender = await User.findOne({ where: { username: req.body.sender } });
-  const receiver = await User.findOne({
-    where: { username: req.body.receiver },
-  });
+async function startPayment(req, res) {
+  try {
+    const amount = req.body.amount;
+    const sender = await User.findOne({ where: { username: req.body.sender } });
+    const receiver = await User.findOne({
+      where: { username: req.body.receiver },
+    });
 
-  if (!sender || !receiver) {
-    return res.status(400).json({ message: "Payment details invalid." });
+    if (!sender || !receiver) {
+      return res.status(400).json({ message: "Payment details invalid." });
+    }
+
+    const transaction = await completeTransaction(sender, receiver, amount);
+    return res.json(transaction);
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: "Internal Server error. Please retry after sometime." });
   }
+}
 
+async function completeTransaction(sender, receiver, amount) {
   let transaction = createNewTransaction(sender, receiver, amount);
-  let status;
-
   try {
     await makePayment(sender, receiver, amount);
     transaction.status = TRANSACTION_STATUS.processed;
-    status = 200;
   } catch (err) {
-    transaction.failureMessage = err.message;
     transaction.status = TRANSACTION_STATUS.failed;
 
     if (err instanceof InvalidRequest || err instanceof ServerFailure) {
-      status = err.status;
+      transaction.failureMessage = err.message;
+    } else {
+      transaction.failureMessage =
+        err.message.length < 50 ? err.message : "Unknow Error.";
     }
   }
 
-  console.log(transaction);
-  transaction = await transaction.save();
-  return res.status(status).json(transaction);
+  return await transaction.save();
 }
 
 async function makePayment(sender, receiver, amount) {
@@ -86,7 +94,7 @@ async function updateAccountBalance(account, amount, transaction) {
   const currentBalance = parseFloat(account.balance);
   const newBalance = currentBalance + parseFloat(amount);
 
-  const [affectedRowsCount, _] = await Account.update(
+  const [_, affectedRowsCount] = await Account.update(
     { balance: newBalance },
     {
       where: { id: accountId, balance: currentBalance },
@@ -95,10 +103,8 @@ async function updateAccountBalance(account, amount, transaction) {
     }
   );
 
-  if (result !== 1) {
-    throw new Error(
-      "Update failed. Account balance might have been modified by another transaction."
-    );
+  if (affectedRowsCount !== 1) {
+    throw new ServerFailure("Please retry after sometime..");
   }
 
   console.log(
@@ -107,5 +113,5 @@ async function updateAccountBalance(account, amount, transaction) {
 }
 
 module.exports = {
-  completeTransaction,
+  startPayment,
 };
