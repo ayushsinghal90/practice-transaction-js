@@ -104,7 +104,7 @@ async function findAccountByUser(user, transaction) {
 }
 
 /**
- * Updates an account balance within a transaction.
+ * Updates an account balance within a transaction, handling concurrency.
  *
  * @param {Object} account - The account object.
  * @param {number} amount - The amount to update the balance.
@@ -112,22 +112,28 @@ async function findAccountByUser(user, transaction) {
  */
 async function updateAccountBalance(account, amount, transaction) {
   const accountId = account.id;
+  const minBalanceRequired = amount > 0 ? 0 : Math.abs(amount);
 
+  // Use Sequelize update method to modify the balance in the database
   const [_, affectedRowsCount] = await Account.update(
     { balance: Sequelize.literal(`balance + ${amount}`) },
     {
       where: {
         id: accountId,
-        balance: { [Sequelize.Op.gte]: Math.abs(amount) },
+        // Ensure the balance is sufficient to perform the transaction during update.
+        balance: { [Sequelize.Op.gte]: Math.abs(minBalanceRequired) },
       },
+      // Include the transaction object for concurrency control
       returning: true,
       transaction,
     }
   );
 
+  // Check the affectedRowsCount to ensure only one row was updated
   if (affectedRowsCount !== 1) {
     throw new ServerFailure("Please retry after some time.");
   } else {
+    // Log success message if the update is successful
     console.log(
       `Account balance updated successfully. Account ID: ${accountId}.`
     );
