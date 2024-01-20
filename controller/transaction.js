@@ -4,6 +4,13 @@ const { completeTransaction } = require("./handlers/payment");
 const User = db.User;
 const Transaction = db.Transaction;
 
+/**
+ * Initiates a payment transaction between a sender and a receiver.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<Object>} - The result of the payment initiation process.
+ */
 async function startPayment(req, res) {
   try {
     const amount = req.body.amount;
@@ -19,12 +26,19 @@ async function startPayment(req, res) {
     const transaction = await completeTransaction(sender, receiver, amount);
     return res.json(transaction);
   } catch (err) {
-    return res
-      .status(500)
-      .json({ message: "Internal Server error. Please retry after sometime." });
+    return res.status(500).json({
+      message: "Internal Server error. Please retry after some time.",
+    });
   }
 }
 
+/**
+ * Retrieves all transactions associated with a specific user.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<Object>} - The result of the transaction retrieval process.
+ */
 async function findUserPayments(req, res) {
   try {
     const transactions = await Transaction.findAll({
@@ -33,7 +47,7 @@ async function findUserPayments(req, res) {
       },
     });
 
-    if (!transactions) {
+    if (!transactions || transactions.length === 0) {
       return res.status(200).json([]);
     }
 

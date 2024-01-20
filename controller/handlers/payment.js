@@ -8,6 +8,14 @@ const Transaction = db.Transaction;
 const sequelize = db.sequelize;
 const Sequelize = db.Sequelize;
 
+/**
+ * Completes a transaction, updating the transaction status based on the payment result.
+ *
+ * @param {Object} sender - The sender user object.
+ * @param {Object} receiver - The receiver user object.
+ * @param {number} amount - The transaction amount.
+ * @returns {Promise<Object>} - The completed transaction object.
+ */
 async function completeTransaction(sender, receiver, amount) {
   let transaction = createNewTransaction(sender, receiver, amount);
   try {
@@ -19,14 +27,21 @@ async function completeTransaction(sender, receiver, amount) {
     if (err instanceof InvalidRequest || err instanceof ServerFailure) {
       transaction.failureMessage = err.message;
     } else {
+      // If the error message is too long, provide a generic message.
       transaction.failureMessage =
-        err.message.length < 50 ? err.message : "Unknow Error.";
+        err.message.length < 50 ? err.message : "Unknown Error.";
     }
   }
 
   return await transaction.save();
 }
 
+/**
+ * Initiates a payment by updating sender and receiver account balances within a transaction.
+ * @param {Object} sender - The sender user object.
+ * @param {Object} receiver - The receiver user object.
+ * @param {number} amount - The transaction amount.
+ */
 async function makePayment(sender, receiver, amount) {
   await sequelize.transaction(async (transaction) => {
     const senderAccount = await findAccountByUser(sender, transaction);
@@ -39,6 +54,13 @@ async function makePayment(sender, receiver, amount) {
   });
 }
 
+/**
+ * Creates a new transaction object.
+ * @param {Object} sender - The sender user object.
+ * @param {Object} receiver - The receiver user object.
+ * @param {number} amount - The transaction amount.
+ * @returns {Object} - The new transaction object.
+ */
 function createNewTransaction(sender, receiver, amount) {
   return Transaction.build({
     senderId: sender.id,
@@ -48,16 +70,30 @@ function createNewTransaction(sender, receiver, amount) {
   });
 }
 
-function validatePaymentDetails(senderAccount, recieverAccount, amount) {
+/**
+ * Validates payment details, throwing errors for invalid scenarios.
+ *
+ * @param {Object} senderAccount - The sender account object.
+ * @param {Object} receiverAccount - The receiver account object.
+ * @param {number} amount - The transaction amount.
+ */
+function validatePaymentDetails(senderAccount, receiverAccount, amount) {
   if (!senderAccount) {
-    throw new InvalidRequest("Sender does not have a account.");
-  } else if (!recieverAccount) {
-    throw new InvalidRequest("Reciever does not have a account.");
+    throw new InvalidRequest("Sender does not have an account.");
+  } else if (!receiverAccount) {
+    throw new InvalidRequest("Receiver does not have an account.");
   } else if (senderAccount.balance - amount < 0) {
     throw new InvalidRequest("Sender balance is insufficient.");
   }
 }
 
+/**
+ * Finds an account for a given user within a transaction.
+ *
+ * @param {Object} user - The user object.
+ * @param {Object} transaction - The Sequelize transaction object.
+ * @returns {Promise<Object>} - The account object.
+ */
 async function findAccountByUser(user, transaction) {
   return await Account.findOne(
     {
@@ -67,6 +103,13 @@ async function findAccountByUser(user, transaction) {
   );
 }
 
+/**
+ * Updates an account balance within a transaction.
+ *
+ * @param {Object} account - The account object.
+ * @param {number} amount - The amount to update the balance.
+ * @param {Object} transaction - The Sequelize transaction object.
+ */
 async function updateAccountBalance(account, amount, transaction) {
   const accountId = account.id;
 
@@ -83,7 +126,7 @@ async function updateAccountBalance(account, amount, transaction) {
   );
 
   if (affectedRowsCount !== 1) {
-    throw new ServerFailure("Please retry after sometime..");
+    throw new ServerFailure("Please retry after some time.");
   } else {
     console.log(
       `Account balance updated successfully. Account ID: ${accountId}.`

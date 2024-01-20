@@ -2,6 +2,13 @@ const db = require("../config/db");
 const User = db.User;
 const Account = db.Account;
 
+/**
+ * Registers a new account for the given user.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<Object>} - The result of the registration process.
+ */
 async function register(req, res) {
   try {
     const user = await findUserByUsername(req.body.username);
@@ -24,6 +31,13 @@ async function register(req, res) {
   }
 }
 
+/**
+ * Finds and returns the account information for the specified user.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<Object>} - The result of the account retrieval process.
+ */
 async function findUserAccount(req, res) {
   try {
     const account = await Account.findOne({
@@ -50,6 +64,12 @@ async function findUserAccount(req, res) {
   }
 }
 
+/**
+ * Finds a user by their username.
+ *
+ * @param {string} username - The username to search for.
+ * @returns {Promise<Object|null>} - The user object if found, otherwise null.
+ */
 async function findUserByUsername(username) {
   return await User.findOne({ where: { username: username } });
 }

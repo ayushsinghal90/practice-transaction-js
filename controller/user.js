@@ -2,6 +2,13 @@ const db = require("../config/db");
 const User = db.User;
 const Account = db.Account;
 
+/**
+ * Registers a new user account.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<Object>} - The result of the user registration process.
+ */
 async function register(req, res) {
   try {
     const user = await User.create({
@@ -19,6 +26,13 @@ async function register(req, res) {
   }
 }
 
+/**
+ * Fetches all user accounts.
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ *
+ * @returns {Promise<Object>} - The result of fetching all user accounts.
+ */
 async function fetchAll(req, res) {
   try {
     const users = await User.findAll();
@@ -30,6 +44,13 @@ async function fetchAll(req, res) {
   }
 }
 
+/**
+ * Fetches a user by their username.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise<Object>} - The result of fetching a user by username.
+ */
 async function fetchUserByUsername(req, res) {
   try {
     const user = await User.findOne({
