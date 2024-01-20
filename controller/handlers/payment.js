@@ -3,10 +3,10 @@ const TRANSACTION_STATUS = require("../../utils/constants/transactionStatus");
 const InvalidRequest = require("../../errors/invalidRequest");
 const ServerFailure = require("../../errors/serverFailure");
 
-const User = db.User;
 const Account = db.Account;
 const Transaction = db.Transaction;
 const sequelize = db.sequelize;
+const Sequelize = db.Sequelize;
 
 async function completeTransaction(sender, receiver, amount) {
   let transaction = createNewTransaction(sender, receiver, amount);
@@ -69,13 +69,14 @@ async function findAccountByUser(user, transaction) {
 
 async function updateAccountBalance(account, amount, transaction) {
   const accountId = account.id;
-  const currentBalance = parseFloat(account.balance);
-  const newBalance = currentBalance + parseFloat(amount);
 
   const [_, affectedRowsCount] = await Account.update(
-    { balance: newBalance },
+    { balance: Sequelize.literal(`balance + ${amount}`) },
     {
-      where: { id: accountId, balance: currentBalance },
+      where: {
+        id: accountId,
+        balance: { [Sequelize.Op.gte]: Math.abs(amount) },
+      },
       returning: true,
       transaction,
     }
@@ -83,11 +84,11 @@ async function updateAccountBalance(account, amount, transaction) {
 
   if (affectedRowsCount !== 1) {
     throw new ServerFailure("Please retry after sometime..");
+  } else {
+    console.log(
+      `Account balance updated successfully. Account ID: ${accountId}.`
+    );
   }
-
-  console.log(
-    `Account balance updated successfully. Account ID: ${accountId}, New Balance: ${newBalance}`
-  );
 }
 
 module.exports = {
