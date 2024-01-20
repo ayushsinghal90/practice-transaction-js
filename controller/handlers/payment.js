@@ -2,6 +2,7 @@ const db = require("../../config/db");
 const TRANSACTION_STATUS = require("../../utils/constants/transactionStatus");
 const InvalidRequest = require("../../errors/invalidRequest");
 const ServerFailure = require("../../errors/serverFailure");
+const { checkPromiseResults } = require("../../utils/commons");
 
 const Account = db.Account;
 const Transaction = db.Transaction;
@@ -49,8 +50,12 @@ async function makePayment(sender, receiver, amount) {
 
     validatePaymentDetails(senderAccount, receiverAccount, amount);
 
-    await updateAccountBalance(senderAccount, -amount, transaction);
-    await updateAccountBalance(receiverAccount, amount, transaction);
+    const result = await Promise.allSettled([
+      updateAccountBalance(senderAccount, -amount, transaction),
+      updateAccountBalance(receiverAccount, amount, transaction),
+    ]);
+
+    checkPromiseResults(result);
   });
 }
 
@@ -104,11 +109,11 @@ async function findAccountByUser(user, transaction) {
 }
 
 /**
- * Updates an account balance within a transaction, handling concurrency.
- *
- * @param {Object} account - The account object.
- * @param {number} amount - The amount to update the balance.
- * @param {Object} transaction - The Sequelize transaction object.
+ * Update the balance of an account.
+ * @param {Account} account - The account to be updated.
+ * @param {number} amount - The amount to be added (positive) or subtracted (negative).
+ * @param {Sequelize.Transaction} transaction - The Sequelize transaction object.
+ * @returns {Promise<number>} - A promise resolving to the updated account's ID.
  */
 async function updateAccountBalance(account, amount, transaction) {
   const accountId = account.id;
@@ -132,12 +137,14 @@ async function updateAccountBalance(account, amount, transaction) {
   // Check the affectedRowsCount to ensure only one row was updated
   if (affectedRowsCount !== 1) {
     throw new ServerFailure("Please retry after some time.");
-  } else {
-    // Log success message if the update is successful
-    console.log(
-      `Account balance updated successfully. Account ID: ${accountId}.`
-    );
   }
+
+  // Log success message if the update is successful
+  console.log(
+    `Account balance updated successfully. Account ID: ${accountId}.`
+  );
+
+  return accountId;
 }
 
 module.exports = {
