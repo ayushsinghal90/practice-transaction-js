@@ -2,7 +2,6 @@ const db = require("../../config/db");
 const TRANSACTION_STATUS = require("../../utils/constants/transactionStatus");
 const InvalidRequest = require("../../errors/invalidRequest");
 const ServerFailure = require("../../errors/serverFailure");
-const { checkPromiseResults } = require("../../utils/commons");
 
 const Account = db.Account;
 const Transaction = db.Transaction;
@@ -50,12 +49,10 @@ async function makePayment(sender, receiver, amount) {
 
     validatePaymentDetails(senderAccount, receiverAccount, amount);
 
-    const result = await Promise.allSettled([
+    const result = await Promise.all([
       updateAccountBalance(senderAccount, -amount, transaction),
       updateAccountBalance(receiverAccount, amount, transaction),
     ]);
-
-    checkPromiseResults(result);
   });
 }
 
